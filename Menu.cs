@@ -126,8 +126,7 @@ namespace FlightInfo
             ra = sma * (1.0 + e);
             rp = o.periapsis;
 
-            v = Kepler.ToTauRange(langle - double2.AngleRadians);
-            v = Kepler.ToTauRange(v * -o.direction);
+            v = Kepler.ToTauRange(langle - double2.AngleRadians * -o.direction);
 
             mm = Kepler.GetMeanMotion(sma, m);
             period = Kepler.GetPeriod(sma, m);
