@@ -1,5 +1,6 @@
 ﻿using ModLoader;
-using System;
+using System.IO;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using HarmonyLib;
@@ -9,13 +10,14 @@ namespace FlightInfo
     public class Main : SFSMod
     {
         public GameObject GO;
+        public bool gene, surf;
 
         public Main() : base(
            "FlightInfo", // Mod ID
            "FlightInfo", // Mod Name
            "jsudo", // Mod Author
-           "v1.2.x", // Mod loader version
-           "v1.0.0" // Mod version
+           "v1.1.x", // Mod loader version
+           "v1.0" // Mod version
            )
         {
         }
@@ -26,7 +28,7 @@ namespace FlightInfo
         public override void load()
         {
             GO = new GameObject("FlightMenu");
-            UnityEngine.Object.Destroy(GO);
+            Object.Destroy(GO);
         }
 
         public override void early_load()
@@ -45,21 +47,41 @@ namespace FlightInfo
         {
             // This method runs if your mod gets unloaded. This shouldn't happen, so it throws an error.
             GO = new GameObject("FlightMenu");
-            UnityEngine.Object.Destroy(GO);
+            Object.Destroy(GO);
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name == "World_PC")
             {
+                /*
+                string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\" + "config.txt";
+                string[] settings = File.ReadAllLines(path);
+                foreach (string setting in settings)
+                {
+                    //drag = (setting == "T");
+                    if (setting == "1")
+                        gene = true;
+                    else
+                        gene = false;
+
+                    if (setting == "2")
+                        surf = true;
+                    else
+                        surf = false;
+                    // 3
+                    // etc
+                
+                }
+                */
                 GO = new GameObject("FlightMenu");
                 GO.AddComponent<Menu>();
-                UnityEngine.Object.DontDestroyOnLoad(GO);
+                Object.DontDestroyOnLoad(GO);
                 GO.SetActive(true);
             }
             else
             {
-                UnityEngine.Object.Destroy(GO);
+                Object.Destroy(GO);
             }
         }
 
