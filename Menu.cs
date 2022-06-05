@@ -7,23 +7,20 @@ namespace FlightInfo
     public class Menu : MonoBehaviour
     {   
         // height = line * 20 + 5
-        public static Rect windowRectGene = new Rect(10, Screen.height / 2 - 150, 300, 125);
-        public static Rect windowRectSurf = new Rect(10, Screen.height / 2 - 0, 300, 105);
+        public static Rect rectGene = new Rect(10, Screen.height / 2f - 0, 300, 165);
+        public static Rect rectSurf = new Rect(10, Screen.height / 2f + 2 * Screen.height / 9f, 300, 105);
         public double ap, pe;
         public string t_ap, t_pe;
-        public double ra, rp,
-                      r, e, v, m, mm,
-                      period, angle, sangle;
-        public double vy, vx, rvy, rvx, langle,
-                      langleFlipped;
-        public double height_1, height_2, old_v;
-        public double heightTerrain;
+        public double speed, r, e, v, m, mm,
+                      period, craftAngle;
+        public double vy, vx, rvy, rvx, angle,
+                      angleFlipped;
+        public double height, heightTerr;
         public Orbit orbit;
-        public int lineGene, lineSurf;
 
         public bool ascending;
 
-        Units units = new Units();
+        readonly Units units = new Units();
 
         // ra = ap+pr
         // rp = pe+pr
@@ -32,24 +29,30 @@ namespace FlightInfo
         // v = true anomaly
         // m = planet mass
         // mm = mean motion
-
-        public void windowFuncGene(int windowID)
+        
+        // messy code top kek
+        public void WindowFuncGene(int windowID)
         {
-            lineGene = 0;
-            lineGene++; PrintStats(lineGene, "Apoapsis", units.UnitLength(ap), windowRectGene);
-            lineGene++; PrintStats(lineGene, "Time to Apospsis", t_ap, windowRectGene);
-            lineGene++; PrintStats(lineGene, "Periapsis", units.UnitLength(pe), windowRectGene);
-            lineGene++; PrintStats(lineGene, "Time to Periapsis", t_pe, windowRectGene);
-            lineGene++; PrintStats(lineGene, "Eccentricity", e.ToString(5, true), windowRectGene);
+            int l = 0;
+            Rect r = rectGene;
+            Print(ref l, r, "Height",              units.UnitLength(height) );
+            Print(ref l, r, "Velocity",            units.UnitSpeed(speed)   );
+            Print(ref l, r, "Apoapsis",            units.UnitLength(ap)     );
+            Print(ref l, r, "Time to Apospsis",    t_ap                     );
+            Print(ref l, r, "Periapsis",           units.UnitLength(pe)     );
+            Print(ref l, r, "Time to Periapsis",   t_pe                     );
+            Print(ref l, r, "Eccentricity",        e.ToString(5, true)      );
             GUI.DragWindow();
         }
-        public void windowFuncSurf(int windowID)
+        public void WindowFuncSurf(int windowID)
         {
-            lineSurf = 0;
-            lineSurf++; PrintStats(lineSurf, "Height (Terrain)", units.UnitLength(heightTerrain), windowRectSurf);
-            lineSurf++; PrintStats(lineSurf, "Vertical Velocity", units.UnitSpeed(rvy), windowRectSurf);
-            lineSurf++; PrintStats(lineSurf, "Horizontal Velocity", units.UnitSpeed(rvx), windowRectSurf);
-            lineSurf++; PrintStats(lineSurf, "Angle", sangle.ToString(1, true) + "°", windowRectSurf);
+            int l = 0;
+            Rect r = rectSurf;
+            Print(ref l, r, "Height (Terrain)",    units.UnitLength(heightTerr)         );
+            Print(ref l, r, "Vertical Velocity",   units.UnitSpeed(rvy)                 );
+            Print(ref l, r, "Horizontal Velocity", units.UnitSpeed(rvx)                 );
+            Print(ref l, r, "Angle",               craftAngle.ToString(1, true) + "°"   );
+            
             GUI.DragWindow();
         }
 
@@ -60,25 +63,24 @@ namespace FlightInfo
             var currentRocket = GameManager.main.rockets[GameManager.main.rockets.IndexOf(player)];
             var location = currentRocket.physics.location;
             var position = location.position;
-            m = location.planet.Value.mass;
-            r = location.Value.Radius;
-            var sma = m / -(2.0 * (Math.Pow(location.velocity.Value.magnitude, 2.0) / 2.0 - m / r));
-            Double3 @double = Double3.Cross(position, location.velocity);
-            Double2 double2 = (Double2)(Double3.Cross((Double3)location.velocity.Value, @double) / m) - position.Value.normalized;
-            e = double2.magnitude;
-            
-            //langle -- l means location (angle made from location)
-            langle = Math.Atan2(position.Value.y, position.Value.x);
-            langleFlipped = Kepler.ToTauRange(Math.Atan2(position.Value.x, position.Value.y));
-
             Orbit o = new Orbit(new Location(location.planet, position, location.velocity), true, false);
 
-            ap = sma * (1.0 + e) - location.planet.Value.Radius;
-            pe = o.periapsis - location.planet.Value.Radius;
-            ra = sma * (1.0 + e);
-            rp = o.periapsis;
+            Double3 @double = Double3.Cross(position, location.velocity);
+            Double2 double2 = (Double2)(Double3.Cross((Double3)location.velocity.Value, @double) / m) - position.Value.normalized;
 
-            v = Kepler.ToTauRange(langle - double2.AngleRadians * -o.direction);
+            m = location.planet.Value.mass;
+            r = location.Value.Radius;
+            var sma = o.sma;
+            e = o.ecc;
+            
+            //langle -- l means location (angle made from location)
+            angle = Math.Atan2(position.Value.y, position.Value.x);
+            angleFlipped = Kepler.ToTauRange(Math.Atan2(position.Value.x, position.Value.y));
+            
+            ap = o.apoapsis - location.planet.Value.Radius;
+            pe = o.periapsis - location.planet.Value.Radius;
+
+            v = Kepler.ToTauRange(angle - double2.AngleRadians * -o.direction);
 
             mm = Kepler.GetMeanMotion(sma, m);
             period = Kepler.GetPeriod(sma, m);
@@ -98,46 +100,44 @@ namespace FlightInfo
                 pe_time = Kepler.GetTimeToPeriapsis(v, e, mm, 1);
                 t_ap = "Infinity";
                 if (pe_time >= 0)
-                {
                     t_pe = units.UnitTime(pe_time);
-                }
                 else t_pe = "Infinity";
             }
 
-            heightTerrain = location.planet.Value.GetTerrainHeightAtAngle(Math.Atan2(position.Value.y, position.Value.x));
-            heightTerrain = r - location.planet.Value.Radius - heightTerrain;
+            height = r - location.planet.Value.Radius;
+            heightTerr = location.planet.Value.GetTerrainHeightAtAngle(Math.Atan2(position.Value.y, position.Value.x));
+            heightTerr = height - heightTerr;
             
             // ASoD
             double trueangle = (double)currentRocket.partHolder.transform.eulerAngles.z;
-            trueangle = Kepler.ToTauRange(trueangle * Math.PI / 180) * 180 / Math.PI;
-            if (trueangle > 180) { trueangle = trueangle - 360; }
-            trueangle = -trueangle;
-               
-            //sangle -- s means subtracted
-            sangle = trueangle - langleFlipped * 180 / Math.PI;
-            sangle = Kepler.ToTauRange(sangle * Math.PI / 180) * 180 / Math.PI;
-            if(sangle > 180) { sangle = sangle - 360; }
+            trueangle = To360Range(trueangle);
+            if (trueangle > 180) { trueangle -= 360; }
+            trueangle = -trueangle; 
+            craftAngle = trueangle - angleFlipped * 180 / Math.PI;     //sangle -- s means subtracted
+            craftAngle = To360Range(craftAngle);
+            if (craftAngle > 180) { craftAngle -= 360; }
 
+            // Surface speed
+            speed = location.velocity.Value.magnitude;
             vx = location.velocity.Value.x;
             vy = location.velocity.Value.y;
-
-            double num = Math.Cos(langleFlipped);
-            double num2 = Math.Sin(langleFlipped);
+            double num = Math.Cos(angleFlipped);
+            double num2 = Math.Sin(angleFlipped);
             rvx = vx * num - vy * num2;
             rvy = vx * num2 + vy * num;
-
-            //if(GetComponent<Main>().gene)
-                windowRectGene = GUI.Window(GUIUtility.GetControlID(FocusType.Passive),
-                    windowRectGene,
-                    new GUI.WindowFunction(windowFuncGene), "General");
-            //if(GetComponent<Main>().surf)
-                windowRectSurf = GUI.Window(GUIUtility.GetControlID(FocusType.Passive),
-                    windowRectSurf,
-                    new GUI.WindowFunction(windowFuncSurf), "Surface");
+            
+            // UI scaling
+            var ratio = Screen.height / 1080f;
+            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(ratio, ratio, 1));
+            rectGene = GUI.Window(GUIUtility.GetControlID(FocusType.Passive),
+                rectGene, new GUI.WindowFunction(WindowFuncGene), "General");
+            rectSurf = GUI.Window(GUIUtility.GetControlID(FocusType.Passive),
+                rectSurf, new GUI.WindowFunction(WindowFuncSurf), "Surface");
         }
 
-        public void PrintStats(int line, string l, string r, Rect rect)
+        public void Print(ref int line, Rect rect, string l, string r)
         {
+            line++;
             GUI.skin.label.alignment = TextAnchor.LowerLeft;
             GUI.Label(new Rect(10, line * 20, rect.width - 20, 20), l);
             GUI.skin.label.alignment = TextAnchor.LowerRight;
@@ -145,15 +145,9 @@ namespace FlightInfo
             GUI.skin.label.alignment = TextAnchor.LowerLeft;
         }
 
-        /*
-        public void PrintLine()
+        public double To360Range(double d)  // performance top kek
         {
-            GUI.skin.label.alignment = TextAnchor.LowerCenter;
-            GUI.Label(new Rect(10, line * 20, windowRect.width - 20, 20),
-            "----------------------------------------------------------------------");
-            GUI.skin.label.alignment = TextAnchor.LowerLeft;
-            line++;
+            return Kepler.ToTauRange(d * Math.PI / 180) * 180 / Math.PI;
         }
-        */
     }
 }

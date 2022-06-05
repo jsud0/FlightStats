@@ -11,14 +11,20 @@ namespace FlightInfo
     {
         public string UnitLength(double l)
         {
-            if (l >= 1000000)
+            if (Math.Abs(l) >= 946073047258080)
+                return String.Format("{0:n}", l / 9460730472580800) + " ly";
+            if (Math.Abs(l) >= 1495978707000)
+                return String.Format("{0:n}", l / 149597870700) + " AU";
+            if (Math.Abs(l) >= 10000)
                 return String.Format("{0:n}", l / 1000) + " km";
             return String.Format("{0:n}", l) + " m";
         }
 
         public string UnitSpeed(double v)
         {
-            if (v >= 100000)
+            if (Math.Abs(v) >= 2997924.58)
+                return String.Format("{0:0.000}", v / 2997924.58) + "% c";
+            if (Math.Abs(v) >= 10000)
                 return String.Format("{0:n}", v / 1000) + " km/s";
             return String.Format("{0:n}", v) + " m/s";
         }

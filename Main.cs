@@ -17,7 +17,7 @@ namespace FlightInfo
            "FlightInfo", // Mod Name
            "jsudo", // Mod Author
            "v1.1.x", // Mod loader version
-           "v1.0" // Mod version
+           "v1.1" // Mod version
            )
         {
         }
