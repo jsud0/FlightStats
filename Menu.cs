@@ -5,14 +5,14 @@ using UnityEngine;
 namespace FlightInfo
 {
     public class Menu : MonoBehaviour
-    {   
+    {
         // height = line * 20 + 5
-        public static Rect rectGene = new Rect(10, Screen.height / 2f - 0, 300, 165);
-        public static Rect rectSurf = new Rect(10, Screen.height / 2f + 2 * Screen.height / 9f, 300, 105);
+        public static Rect rectGene;
+        public static Rect rectSurf;
         public double ap, pe;
         public string t_ap, t_pe;
-        public double speed, r, e, v, m, mm,
-                      period, craftAngle;
+        public double speed, r, e, v, m, mm, sma,
+                      period, trueAngle, craftAngle;
         public double vy, vx, rvy, rvx, angle,
                       angleFlipped;
         public double height, heightTerr;
@@ -34,6 +34,7 @@ namespace FlightInfo
         public void WindowFuncGene(int windowID)
         {
             int l = 0;
+            rectGene = new Rect(10, Screen.height / 2f - 0, 300, 165);
             Rect r = rectGene;
             Print(ref l, r, "Height",              units.UnitLength(height) );
             Print(ref l, r, "Velocity",            units.UnitSpeed(speed)   );
@@ -47,6 +48,7 @@ namespace FlightInfo
         public void WindowFuncSurf(int windowID)
         {
             int l = 0;
+            rectSurf = new Rect(10, Screen.height / 2f + 2 * Screen.height / 9f, 300, 105);
             Rect r = rectSurf;
             Print(ref l, r, "Height (Terrain)",    units.UnitLength(heightTerr)         );
             Print(ref l, r, "Vertical Velocity",   units.UnitSpeed(rvy)                 );
@@ -70,10 +72,9 @@ namespace FlightInfo
 
             m = location.planet.Value.mass;
             r = location.Value.Radius;
-            var sma = o.sma;
+            sma = o.sma;
             e = o.ecc;
             
-            //langle -- l means location (angle made from location)
             angle = Math.Atan2(position.Value.y, position.Value.x);
             angleFlipped = Kepler.ToTauRange(Math.Atan2(position.Value.x, position.Value.y));
             
@@ -105,16 +106,15 @@ namespace FlightInfo
             }
 
             height = r - location.planet.Value.Radius;
-            heightTerr = location.planet.Value.GetTerrainHeightAtAngle(Math.Atan2(position.Value.y, position.Value.x));
+            heightTerr = location.planet.Value.GetTerrainHeightAtAngle(angle);
             heightTerr = height - heightTerr;
-            
+            Debug.Log(SelectableObject.mapObjects.Count);
             // ASoD
-            double trueangle = (double)currentRocket.partHolder.transform.eulerAngles.z;
-            trueangle = To360Range(trueangle);
-            if (trueangle > 180) { trueangle -= 360; }
-            trueangle = -trueangle; 
-            craftAngle = trueangle - angleFlipped * 180 / Math.PI;     //sangle -- s means subtracted
-            craftAngle = To360Range(craftAngle);
+            trueAngle = To360Range(currentRocket.partHolder.transform.eulerAngles.z);
+            if (trueAngle > 180) { trueAngle -= 360; }
+            trueAngle = -trueAngle; 
+
+            craftAngle = To360Range(trueAngle - angleFlipped * 180 / Math.PI);
             if (craftAngle > 180) { craftAngle -= 360; }
 
             // Surface speed
@@ -145,9 +145,11 @@ namespace FlightInfo
             GUI.skin.label.alignment = TextAnchor.LowerLeft;
         }
 
-        public double To360Range(double d)  // performance top kek
+        public double To360Range(double d)
         {
-            return Kepler.ToTauRange(d * Math.PI / 180) * 180 / Math.PI;
+            if (d < 0)
+                d = 360 - d;
+            return d % 360;
         }
     }
 }
